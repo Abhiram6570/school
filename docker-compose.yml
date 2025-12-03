@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: school_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: school_db
+      MYSQL_USER: school_user
+      MYSQL_PASSWORD: ${DB_PASSWORD:-schoolpass}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - school_network
+
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: school_backend
+    restart: unless-stopped
+    environment:
+      DB_HOST: mysql
+      DB_USER: school_user
+      DB_PASSWORD: ${DB_PASSWORD:-schoolpass}
+      DB_NAME: school_db
+      DB_PORT: 3306
+      NODE_ENV: production
+    depends_on:
+      - mysql
+    ports:
+      - "5000:5000"
+    networks:
+      - school_network
+
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: school_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+    networks:
+      - school_network
+
+networks:
+  school_network:
+    driver: bridge
+
+volumes:
+  mysql_data:
